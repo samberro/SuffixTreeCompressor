@@ -2,8 +2,9 @@ package com.samberro;
 
 import com.samberro.matcher.MatchInfo;
 import com.samberro.matcher.Matcher;
+import com.samberro.utils.Utils;
 
-import java.io.IOException;
+import java.io.*;
 
 import static com.samberro.utils.Utils.*;
 
@@ -14,17 +15,26 @@ public class Main {
         Matcher matcher = new Matcher();
         long startTime = System.currentTimeMillis();
         SuffixTrie suffixTrie = new SuffixTrie(matcher);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        BytePacker packer = new BytePacker(new BufferedOutputStream(out));
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
             suffixTrie.insertByte(b, i);
             if (matcher.getState() == Matcher.State.READY) {
                 MatchInfo latestMatch = matcher.getLatestMatch();
-//                log("Found match with length: %d @ %d", latestMatch.getMatchLength(), latestMatch.getMatchPos());
+                packer.writeMatchedBytes(latestMatch, i);
+            } else if (matcher.getState() == Matcher.State.NO_MATCH) {
+//                NEED TO WRITE MATCHED BYTES
+                packer.writeUncompressedByte(b);
             }
         }
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
         System.out.println("COUNT: " + Node.COUNT + ", bytes: " + (humanReadableByteCountSI(bytes.length)));
         System.out.println("MATCHER: " + matcher);
+
+        packer.close();
+        byte[] arr = out.toByteArray();
+        System.out.println("COMPRESSED: " + Utils.toByteString(arr));
 
         testTrie(bytes, suffixTrie);
 
