@@ -2,32 +2,49 @@ package com.samberro;
 
 import com.samberro.utils.Match;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+
 public class Compressor {
     private static final int MIN_MATCH = 3;
     private static final int MAX_DEPTH = 0b11_1111 + 3;
 
-    private Node root = new Node((byte) 0, 0);
+    private Node root = Node.obtain((byte) 0, 0);
     private Node current = root;
 
     public void insertByte(byte val, int streamIndex) {
         current = insertByte(current, val, streamIndex);
-        if(!validateHavePathToRoot(current))
-            throw new RuntimeException("No path to root at: " + streamIndex);
+        if (!validateHavePathToRoot(current)) throw new RuntimeException("No path to root at: " + streamIndex);
+    }
+
+    public void cull(int index) {
+        System.out.println("Culling @ " + index);
+        int min = index - 0xFFFF;
+        cull(root, min);
+    }
+
+    private void cull(Node node, int min) {
+        ArrayList<Node> nodes = new ArrayList<>(node.getNodes());
+        for (Node n : nodes) {
+            if (n.getLastSeenIndex() < min) node.removeNode(n);
+            else cull(n, min);
+        }
     }
 
     private boolean validateHavePathToRoot(Node node) {
-        if(node == null) return false;
-        if(node == root) return true;
+        if (node == null) return false;
+        if (node == root) return true;
         return validateHavePathToRoot(node.getNextSuffixLink());
     }
 
     private Node insertByte(Node node, byte val, int streamIndex) {
-        if(node == null) return root;
+        if (node == null) return root;
 
         Node next = node.nodeAt(val);
 
         if(next == null && node.getDepth() < MAX_DEPTH) {
-            next = new Node(val, node.getDepth() + 1);
+            next = Node.obtain(val, node.getDepth() + 1);
             node.addNode(val, next);
         }
 
@@ -40,7 +57,7 @@ public class Compressor {
             next = insertByte(node.getNextSuffixLink(), val, streamIndex);
         }
 
-        if(next.getNextSuffixLink() != node) node.setNextSuffixLink(null);
+        if (next.getNextSuffixLink() != node && next != node) node.setNextSuffixLink(null);
 
         return next;
     }
