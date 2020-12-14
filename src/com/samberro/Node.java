@@ -2,7 +2,7 @@ package com.samberro;
 
 import java.util.*;
 
-import static com.samberro.Compressor.MAX_DISTANCE;
+import static com.samberro.SuffixTrie.MAX_DISTANCE;
 
 public class Node {
     public static int COUNT = 0;
@@ -120,16 +120,6 @@ public class Node {
 //        nodes[b&0xFF] = node;
     }
 
-    @Override
-    public String toString() {
-        return depth == 0 ? "root" : "Node{" +
-                "val=" + String.format("%02X", val) +
-                ", depth=" + depth +
-                ", lastSeenIndex=" + lastSeenIndex +
-                ", nextSuffix=" + nextSuffix +
-                '}';
-    }
-
     public Collection<Node> getNodes() {
         assertNotRecycled();
         return nodes.values();
@@ -171,9 +161,26 @@ public class Node {
         recycled = true;
     }
 
+    public Node getParentNode() {
+        return parentNode;
+    }
+
     private void assertNotRecycled() {
         if (recycled) throw new RuntimeException("Recycled");
     }
 
+    @Override
+    public String toString() {
+        return depth == 0 ? "root" : "Node{" +
+                "val=" + String.format("%02X", val) +
+                ", depth=" + depth +
+                ", lastSeenIndex=" + lastSeenIndex +
+                ", nextSuffix=" + nextSuffix +
+                '}';
+    }
 
+
+    public boolean isRoot() {
+        return depth == 0;
+    }
 }

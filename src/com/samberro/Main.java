@@ -1,30 +1,32 @@
 package com.samberro;
 
+import com.samberro.matcher.MatchInfo;
+import com.samberro.matcher.Matcher;
+
 import java.io.IOException;
 
 import static com.samberro.utils.Utils.*;
 
 public class Main {
 
-    public static int iterations;
-
     public static void main(String[] args) throws IOException {
-//        Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
-//            System.out.println("COUNT: " + Node.COUNT + ", bytes: " + (index + 1));
-//            Thread.currentThread().getThreadGroup().uncaughtException(t, e);
-//        });
-        byte[] bytes = fromFile(3_000_000);
+        byte[] bytes = fromFile(500_000);
+        Matcher matcher = new Matcher();
         long startTime = System.currentTimeMillis();
-        Compressor compressor = new Compressor();
+        SuffixTrie suffixTrie = new SuffixTrie(matcher);
         for (int i = 0; i < bytes.length; i++) {
-            iterations = i;
             byte b = bytes[i];
-            compressor.insertByte(b, i);
+            suffixTrie.insertByte(b, i);
+            if (matcher.getState() == Matcher.State.READY) {
+                MatchInfo latestMatch = matcher.getLatestMatch();
+//                log("Found match with length: %d @ %d", latestMatch.getMatchLength(), latestMatch.getMatchPos());
+            }
         }
-        System.out.printf("Finished building in %d ms\n", System.currentTimeMillis() - startTime);
-        System.out.println("COUNT: " + Node.COUNT + ", bytes: " + (iterations + 1));
+        System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
+        System.out.println("COUNT: " + Node.COUNT + ", bytes: " + (humanReadableByteCountSI(bytes.length)));
+        System.out.println("MATCHER: " + matcher);
 
-        testTrie(bytes, compressor);
+        testTrie(bytes, suffixTrie);
 
         decode();
 

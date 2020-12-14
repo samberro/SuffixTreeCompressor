@@ -1,12 +1,18 @@
 package com.samberro;
 
-public class Compressor {
-    private static final int MIN_MATCH = 3;
+import com.samberro.matcher.Matcher;
+
+public class SuffixTrie {
     public static final int MAX_SUFFIX_LENGTH = 0b11_1111 + 3;
     public static final int MAX_DISTANCE = 0xFFFF;
 
     private Node root = Node.obtain((byte) 0, 0, null);
     private Node current = root;
+    private Matcher matcher;
+
+    public SuffixTrie(Matcher matcher) {
+        this.matcher = matcher;
+    }
 
     public void insertByte(byte val, int streamIndex) {
         current = insertByte(current, val, streamIndex);
@@ -23,6 +29,7 @@ public class Compressor {
         if (node == null) return root;
 
         Node next = node.nodeAt(val);
+        matcher.update(node, next);
 
         if (next == null && node.getDepth() < MAX_SUFFIX_LENGTH) {
             next = Node.obtain(val, node.getDepth() + 1, node);
@@ -33,8 +40,7 @@ public class Compressor {
             next.setLastSeenIndex(streamIndex);
             next.setNextSuffixLink(insertByte(node.getNextSuffixLink(), val, streamIndex));
         } else {
-            // node.getDepth() >= MAX_DEPTH
-            // reached the max suffix length
+            // reached the max suffix length, point to next suffix link
             next = insertByte(node.getNextSuffixLink(), val, streamIndex);
         }
 

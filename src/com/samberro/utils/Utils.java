@@ -1,12 +1,14 @@
 package com.samberro.utils;
 
-import com.samberro.Compressor;
+import com.samberro.SuffixTrie;
 
 import java.io.*;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.util.*;
 
-import static com.samberro.Compressor.MAX_DISTANCE;
-import static com.samberro.Compressor.MAX_SUFFIX_LENGTH;
+import static com.samberro.SuffixTrie.MAX_DISTANCE;
+import static com.samberro.SuffixTrie.MAX_SUFFIX_LENGTH;
 
 public class Utils {
 
@@ -48,7 +50,7 @@ public class Utils {
         return bytes;
     }
 
-    public static void testTrie(byte[] inputBytes, Compressor compressor) {
+    public static void testTrie(byte[] inputBytes, SuffixTrie suffixTrie) {
         String inputString = toByteString(inputBytes); // Helps with testing
         byte[] testBytes;
         int i = 0;
@@ -58,7 +60,7 @@ public class Utils {
             int start = maxLength - random.nextInt(MAX_DISTANCE - 1) - 1;
             int length = Math.min(random.nextInt(63) + 3, Math.min(maxLength - start, MAX_SUFFIX_LENGTH));
             testBytes = Arrays.copyOfRange(inputBytes, start, start + length);
-            int foundIndex = compressor.find(testBytes);
+            int foundIndex = suffixTrie.find(testBytes);
             if (foundIndex == -1)
                 throw new RuntimeException("was not found: (" + start + ", " + length + ")");
             if (!checkMatch(inputString, start, length, foundIndex))
@@ -72,5 +74,17 @@ public class Utils {
         if (lastIndexOf % 2 == 1)
             return checkMatch(byteString.substring(0, lastIndexOf + (length << 1) - 1), start, length, foundIndex);
         else return lastIndexOf == foundIndex << 1;
+    }
+
+    public static String humanReadableByteCountSI(long bytes) {
+        if (-1000 < bytes && bytes < 1000) {
+            return bytes + " B";
+        }
+        CharacterIterator ci = new StringCharacterIterator("kMG");
+        while (bytes <= -999_950 || bytes >= 999_950) {
+            bytes /= 1000;
+            ci.next();
+        }
+        return String.format("%.1f %cB", bytes / 1000.0, ci.current());
     }
 }
