@@ -1,6 +1,6 @@
 package com.samberro.utils;
 
-import com.samberro.SuffixTrie;
+import com.samberro.trie.SuffixTrie;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -10,8 +10,8 @@ import java.text.StringCharacterIterator;
 import java.util.Arrays;
 import java.util.Random;
 
-import static com.samberro.SuffixTrie.MAX_DISTANCE;
-import static com.samberro.SuffixTrie.MAX_SUFFIX_LENGTH;
+import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
+import static com.samberro.trie.SuffixTrie.MAX_SUFFIX_LENGTH;
 
 public class Utils {
 

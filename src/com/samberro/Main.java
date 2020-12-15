@@ -3,6 +3,8 @@ package com.samberro;
 import com.samberro.codec.Coder;
 import com.samberro.codec.Decoder;
 import com.samberro.matcher.Matcher;
+import com.samberro.trie.Node;
+import com.samberro.trie.SuffixTrie;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;

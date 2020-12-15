@@ -1,6 +1,6 @@
 package com.samberro.matcher;
 
-import com.samberro.Node;
+import com.samberro.trie.Node;
 
 public class MatchInfo {
     private int originalIndex;

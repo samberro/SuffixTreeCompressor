@@ -1,6 +1,6 @@
 package com.samberro.matcher;
 
-import com.samberro.Node;
+import com.samberro.trie.Node;
 
 public class Matcher {
     public static final int MIN_MATCH = 3;

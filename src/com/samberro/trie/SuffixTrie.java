@@ -1,4 +1,4 @@
-package com.samberro;
+package com.samberro.trie;
 
 import com.samberro.matcher.Matcher;
 

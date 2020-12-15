@@ -1,8 +1,8 @@
-package com.samberro;
+package com.samberro.trie;
 
 import java.util.*;
 
-import static com.samberro.SuffixTrie.MAX_DISTANCE;
+import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
 
 public class Node {
     public static int COUNT = 0;
