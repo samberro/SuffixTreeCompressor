@@ -1,7 +1,5 @@
 package com.samberro.codec;
 
-import com.samberro.matcher.MatchInfo;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 
@@ -80,6 +78,8 @@ public class Coder {
 
         outputStream.flush();
         outputStream.close();
+
+        System.out.println("Bytes written: " + bytesWritten);
     }
 
     private void writeToStream(byte[] byteVals, int numBytes) {

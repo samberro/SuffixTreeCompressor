@@ -40,11 +40,12 @@ public class Main {
         }
         matcher.finish();
         packer.close();
+        byte[] compressed = out.toByteArray();
 
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
-        System.out.println("COUNT: " + Node.COUNT + ", bytes: " + (humanReadableByteCountSI(bytes.length)));
+        System.out.println("Nodes created: " + Node.COUNT);
+        System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(bytes.length));
 
-        byte[] compressed = out.toByteArray();
         decode(bytes, compressed);
 //        testTrie(bytes, suffixTrie);
 
