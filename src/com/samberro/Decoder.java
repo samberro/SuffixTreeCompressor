@@ -1,81 +1,140 @@
 package com.samberro;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import static com.samberro.NextAction.DONE;
-import static com.samberro.NextAction.READ_ACTION_FLAG;
+import static com.samberro.NextAction.*;
+import static com.samberro.SuffixTrie.MAX_SUFFIX_LENGTH;
+import static com.samberro.matcher.Matcher.MIN_MATCH;
 import static com.samberro.utils.Utils.rightShiftUnsigned;
 
 public class Decoder {
     private NextAction nextAction;
     private int index;
-    private int boundaryStart;
-    private Byte[] array;
+    private int fence;
+    private byte[] in;
+    private byte[] buffer;
+    private CircularByteStackBuffer decodedBuffer;
+    private OutputStream outputStream;
+    private StringBuilder stringBuilder;
+    private byte[] original;
+    private int originalIndex;
 
-    public List<Byte> container;
-
-    public Decoder(Byte[] array) {
-        this.array = array;
+    public Decoder(byte[] array, BufferedOutputStream outputStream) {
+        this.in = array;
+        this.outputStream = outputStream;
         nextAction = READ_ACTION_FLAG;
         index = 0;
-        boundaryStart = 0;
-        container = new ArrayList<>();
+        fence = 0;
+        buffer = new byte[MAX_SUFFIX_LENGTH];
+        decodedBuffer = new CircularByteStackBuffer(0xFFFF);
+        stringBuilder = new StringBuilder();
     }
 
-    public Decoder decode() {
+    public Decoder decode() throws IOException {
         while (nextAction != DONE) {
+            int read = 0;
             switch (nextAction) {
                 case READ_ACTION_FLAG:
                     decodeAction();
                     break;
                 case READ_BYTE_VAL:
-                    container.add(decodeByteValue());
+                    read = decodeByteValue(buffer);
                     break;
                 case READ_COMPRESSED_INFO:
-                    container.addAll(decodeCompressedBytes());
+                    read = decodeCompressedBytes(buffer);
                     break;
             }
+            updateString();
+            writeBytes(read);
         }
+        outputStream.flush();
 
         return this;
     }
 
-    private List<Byte> decodeCompressedBytes() {
-        int offset = (peekByte(index++, boundaryStart) << 8) | peekByte(index++, boundaryStart);
-        byte length = rightShiftUnsigned(peekByte(index, boundaryStart), 2);
-        incrementBoundaryStart(6);
-        nextAction = READ_ACTION_FLAG;
-        return container.subList(container.size() - offset, container.size() - offset + length);
+    private void writeBytes(int read) throws IOException {
+        if (read != 0) {
+            outputStream.write(buffer, 0, read);
+            decodedBuffer.push(buffer, read);
+//            checkWithOriginal(buffer, read);
+        }
     }
 
-    private byte decodeByteValue() {
-        byte val = peekByte(index++, boundaryStart);
+    private void checkWithOriginal(byte[] buffer, int read) {
+        for (int i = 0; i < read; i++) {
+            if (buffer[i] != original[originalIndex++])
+                throw new RuntimeException("Mismatch at index " + (originalIndex - 1));
+        }
+    }
+
+    private void updateString() {
+        if (nextAction == READ_BYTE_VAL) appendRawByteEncoded(peekByte(index, fence));
+        else if (nextAction == READ_COMPRESSED_INFO) appendCompressedInfo(getReferencedOffset(), getReferencedLength());
+    }
+
+    private void appendCompressedInfo(int offset, byte length) {
+        stringBuilder.append("(1,-").append(offset).append(",").append(length).append(")");
+    }
+
+    private void appendRawByteEncoded(byte b) {
+        stringBuilder.append("(0,").append(String.format("%02X)", b));
+    }
+
+    private int decodeCompressedBytes(byte[] buffer) {
+        int offset = getReferencedOffset();
+        byte length = getReferencedLength();
+        index += 2;
+        incrementBoundaryStart(6);
         nextAction = READ_ACTION_FLAG;
-        return val;
+        return decodedBuffer.at(offset, length, buffer);
+    }
+
+    private byte getReferencedLength() {
+        return (byte) (rightShiftUnsigned(peekByte(index + 2, fence), 2) + MIN_MATCH);
+    }
+
+    private int getReferencedOffset() {
+        return (peekByte(index, fence) << 8) | ((int) peekByte(index + 1, fence) & 0xFF);
+    }
+
+    private int decodeByteValue(byte[] buffer) {
+        buffer[0] = peekByte(index++, fence);
+        nextAction = READ_ACTION_FLAG;
+        return 1;
     }
 
     private byte peekByte(int index, int boundaryStart) {
-        byte val = array[index];
+        byte val = in[index];
         if (boundaryStart != 0) {
-            val = (byte) ((val << boundaryStart) | (rightShiftUnsigned(array[index + 1], 8 - boundaryStart)));
+            val = (byte) ((val << boundaryStart) | (rightShiftUnsigned(in[index + 1], 8 - boundaryStart)));
         }
         return val;
     }
 
     private void decodeAction() {
-        if (index >= array.length - 1) nextAction = DONE;
+        if (index >= in.length - 1) nextAction = DONE;
         else {
-            byte b = (byte) (array[index] << boundaryStart);
-            incrementBoundaryStart(1);
+            byte b = (byte) (in[index] << fence);
             boolean isCompressed = (b & 0x80) == 0x80;
+            incrementBoundaryStart(1);
             nextAction = isCompressed ? NextAction.READ_COMPRESSED_INFO : NextAction.READ_BYTE_VAL;
         }
     }
 
     private void incrementBoundaryStart(int inc) {
-        boundaryStart += inc;
-        index += boundaryStart >> 3;
-        boundaryStart = boundaryStart % 8;
+        fence += inc;
+        index += fence >> 3;
+        fence = fence % 8;
+    }
+
+    public String getStringRepresentation() {
+        return stringBuilder.toString();
+    }
+
+    public Decoder withDebug(byte[] input) {
+        this.original = input;
+        return this;
     }
 }

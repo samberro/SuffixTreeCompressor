@@ -1,5 +1,6 @@
 package com.samberro.utils;
 
+import com.samberro.Decoder;
 import com.samberro.SuffixTrie;
 
 import java.io.*;

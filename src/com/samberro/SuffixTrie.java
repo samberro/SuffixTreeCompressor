@@ -29,7 +29,7 @@ public class SuffixTrie {
         if (node == null) return root;
 
         Node next = node.nodeAt(val);
-        matcher.update(node, next);
+        matcher.update(node, next, streamIndex);
 
         if (next == null && node.getDepth() < MAX_SUFFIX_LENGTH) {
             next = Node.obtain(val, node.getDepth() + 1, node);

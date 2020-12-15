@@ -3,66 +3,73 @@ package com.samberro.matcher;
 import com.samberro.Node;
 import com.samberro.utils.Utils;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Matcher {
-    private static final int MIN_MATCH = 3;
+    public static final int MIN_MATCH = 3;
 
-    private State state = State.NO_MATCH;
-    private MatchInfo currentMatch = new MatchInfo(-1, null);
+    private State state = State.IDLE;
+    private MatchInfo currentMatch = new MatchInfo(-1, -1, null);
+    private MatchInfo tempMatch = new MatchInfo(-1, -1, null);
+    private MatchInfo readyMatch = null;
     private int maxLengthMatch = 0;
     private int noMatchCount = 0;
     private HashMap<Integer, Integer> matchCounts = new HashMap<>();
 
-    public State getState() {
-        return state;
+    public boolean hasMatch() {
+        return readyMatch != null;
     }
 
-    public MatchInfo getLatestMatch() {
-        state = State.NO_MATCH;
-        return currentMatch;
+    public MatchInfo getMatch() {
+        if (hasMatch()) {
+            tempMatch = readyMatch;
+            readyMatch = null;
+            return tempMatch;
+        }
+        return null;
     }
 
-    public void update(Node parent, Node next) {
+    public void update(Node parent, Node next, int streamIndex) {
         switch (state) {
-            case NO_MATCH:
-                startMatching(parent, next);
+            case IDLE:
+                startMatching(parent, next, streamIndex);
                 break;
             case MATCHING:
-                continueMatching(parent, next);
+                continueMatching(parent, next, streamIndex);
                 break;
             default:
                 break;
         }
     }
 
-    private void continueMatching(Node parent, Node next) {
+    private void continueMatching(Node parent, Node next, int streamIndex) {
         if (currentMatch.getMatchNode() == parent) {
-            if (next != null) currentMatch.update(next);
+            if (next != null && next.getDepth() <= currentMatch.getMaxAllowedLength()) currentMatch.update(next);
             else if (currentMatch.getMatchLength() >= MIN_MATCH) transToReady();
             else transToNoMatch();
         }
     }
 
-    private void startMatching(Node parent, Node next) {
+    private void startMatching(Node parent, Node next, int streamIndex) {
         if (next != null && parent.isRoot()) {
             state = State.MATCHING;
-            currentMatch.update(next);
+            currentMatch.startMatch(streamIndex, next);
         } else if (parent.isRoot()) noMatchCount++;
     }
 
     private void transToNoMatch() {
-        state = State.NO_MATCH;
+        state = State.IDLE;
     }
 
     private void transToReady() {
-        state = State.READY;
+        state = State.IDLE;
+        readyMatch = currentMatch;
         int matchLength = currentMatch.getMatchLength();
         Integer count = matchCounts.get(matchLength);
         count = count == null ? 1 : count + 1;
         matchCounts.put(matchLength, count);
         if (maxLengthMatch < matchLength) maxLengthMatch = matchLength;
+        currentMatch = tempMatch;
     }
 
     public long getCompressedSize() {
@@ -74,8 +81,17 @@ public class Matcher {
         return (noMatches + matches) / 8L;
     }
 
+    public void finish() {
+        if (state == State.MATCHING && currentMatch.getMatchLength() >= MIN_MATCH) transToReady();
+        else transToNoMatch();
+    }
+
+    public State getState() {
+        return state;
+    }
+
     public enum State {
-        NO_MATCH, MATCHING, READY
+        IDLE, MATCHING
     }
 
     @Override
