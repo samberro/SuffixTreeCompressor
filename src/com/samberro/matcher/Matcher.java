@@ -1,32 +1,16 @@
 package com.samberro.matcher;
 
 import com.samberro.Node;
-import com.samberro.utils.Utils;
-
-import java.util.*;
 
 public class Matcher {
     public static final int MIN_MATCH = 3;
 
     private State state = State.IDLE;
     private MatchInfo currentMatch = new MatchInfo(-1, -1, null);
-    private MatchInfo tempMatch = new MatchInfo(-1, -1, null);
-    private MatchInfo readyMatch = null;
-    private int maxLengthMatch = 0;
-    private int noMatchCount = 0;
-    private HashMap<Integer, Integer> matchCounts = new HashMap<>();
+    private MatchListener listener;
 
-    public boolean hasMatch() {
-        return readyMatch != null;
-    }
-
-    public MatchInfo getMatch() {
-        if (hasMatch()) {
-            tempMatch = readyMatch;
-            readyMatch = null;
-            return tempMatch;
-        }
-        return null;
+    public Matcher(MatchListener listener) {
+        this.listener = listener;
     }
 
     public void update(Node parent, Node next, int streamIndex) {
@@ -35,18 +19,18 @@ public class Matcher {
                 startMatching(parent, next, streamIndex);
                 break;
             case MATCHING:
-                continueMatching(parent, next, streamIndex);
+                continueMatching(parent, next);
                 break;
             default:
                 break;
         }
     }
 
-    private void continueMatching(Node parent, Node next, int streamIndex) {
+    private void continueMatching(Node parent, Node next) {
         if (currentMatch.getMatchNode() == parent) {
             if (next != null && next.getDepth() <= currentMatch.getMaxAllowedLength()) currentMatch.update(next);
-            else if (currentMatch.getMatchLength() >= MIN_MATCH) transToReady();
-            else transToNoMatch();
+            else if (currentMatch.getMatchLength() >= MIN_MATCH) deliverMatchReady();
+            else deliverNoMatch();
         }
     }
 
@@ -54,51 +38,34 @@ public class Matcher {
         if (next != null && parent.isRoot()) {
             state = State.MATCHING;
             currentMatch.startMatch(streamIndex, next);
-        } else if (parent.isRoot()) noMatchCount++;
+        } else if (parent.isRoot()) listener.onMatchFailed(streamIndex, 1);
     }
 
-    private void transToNoMatch() {
+    private void deliverNoMatch() {
         state = State.IDLE;
+        listener.onMatchFailed(currentMatch.getDestIndex(), currentMatch.getMatchLength());
     }
 
-    private void transToReady() {
+    private void deliverMatchReady() {
         state = State.IDLE;
-        readyMatch = currentMatch;
-        int matchLength = currentMatch.getMatchLength();
-        Integer count = matchCounts.get(matchLength);
-        count = count == null ? 1 : count + 1;
-        matchCounts.put(matchLength, count);
-        if (maxLengthMatch < matchLength) maxLengthMatch = matchLength;
-        currentMatch = tempMatch;
-    }
-
-    public long getCompressedSize() {
-        long noMatches = noMatchCount * 9L;
-        long matches = 0L;
-        for (Map.Entry<Integer, Integer> entry : matchCounts.entrySet()) {
-            matches += entry.getValue() * 23L;
-        }
-        return (noMatches + matches) / 8L;
+        listener.onMatchReady(currentMatch.getOriginalIndex(), currentMatch.getDestIndex(), currentMatch.getMatchLength());
+        currentMatch.update(null);
     }
 
     public void finish() {
-        if (state == State.MATCHING && currentMatch.getMatchLength() >= MIN_MATCH) transToReady();
-        else transToNoMatch();
-    }
-
-    public State getState() {
-        return state;
+        if (state == State.MATCHING) {
+            if (currentMatch.getMatchLength() >= MIN_MATCH) deliverMatchReady();
+            else deliverNoMatch();
+        }
     }
 
     public enum State {
         IDLE, MATCHING
     }
 
-    @Override
-    public String toString() {
-        return "Matcher{" +
-                "maxLengthMatch=" + maxLengthMatch +
-                "compressed=" + Utils.humanReadableByteCountSI(getCompressedSize()) +
-                '}';
+    public interface MatchListener {
+        void onMatchReady(int originIndex, int destIndex, int length);
+
+        void onMatchFailed(int destIndex, int length);
     }
 }

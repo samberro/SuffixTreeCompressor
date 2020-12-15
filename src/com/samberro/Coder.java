@@ -21,7 +21,7 @@ public class Coder {
         this.outputStream = outputStream;
     }
 
-    public void writeUncompressedByte(byte b) throws IOException {
+    public void writeUncompressedByte(byte b) {
         if (fence + NUM_BITS_UNCOMPRESSED_BYTE <= 32) {
             outval |= (b & 0xFF) << (23 - fence);
             fence = (fence + NUM_BITS_UNCOMPRESSED_BYTE) % 32;
@@ -33,11 +33,11 @@ public class Coder {
             fence = (fence + NUM_BITS_UNCOMPRESSED_BYTE) % 32;
             outval |= (b & 0xFF) >>> fence;
             write();
-            outval = b << (32 - fence);
+            outval = (b & 0xFF) << (32 - fence);
         }
     }
 
-    private void write() throws IOException {
+    private void write() {
         byteSize(outval);
         writeToStream(outBytes, 4);
     }
@@ -49,12 +49,12 @@ public class Coder {
         outBytes[3] = (byte) (val);
     }
 
-    public void writeMatchedBytes(MatchInfo matchInfo, int streamIndex) throws IOException {
-        int relativePos = matchInfo.getDestIndex() - matchInfo.getOriginalIndex();
-        int length = matchInfo.getMatchLength() - MIN_MATCH;
+    public void writeMatchedBytes(int originIndex, int destIndex, int length) {
+        int relativePos = destIndex - originIndex;
+        int encodedLength = length - MIN_MATCH;
         int val = 1 << 22;
         val |= (relativePos & 0xFFFF) << 6;
-        val |= length & 0x3F;
+        val |= encodedLength & 0x3F;
 
         if (fence + NUM_BITS_COMPRESSED_STRING <= 32) {
             outval |= val << (9 - fence);
@@ -82,8 +82,12 @@ public class Coder {
         outputStream.close();
     }
 
-    private void writeToStream(byte[] byteVals, int numBytes) throws IOException {
-        outputStream.write(byteVals, 0, numBytes);
+    private void writeToStream(byte[] byteVals, int numBytes) {
+        try {
+            outputStream.write(byteVals, 0, numBytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         bytesWritten += numBytes;
     }
 }

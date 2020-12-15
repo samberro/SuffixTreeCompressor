@@ -15,7 +15,7 @@ public class Decoder {
     private int fence;
     private byte[] in;
     private byte[] buffer;
-    private CircularByteStackBuffer decodedBuffer;
+    private CircularByteBuffer decodedBuffer;
     private OutputStream outputStream;
     private StringBuilder stringBuilder;
     private byte[] original;
@@ -28,7 +28,7 @@ public class Decoder {
         index = 0;
         fence = 0;
         buffer = new byte[MAX_SUFFIX_LENGTH];
-        decodedBuffer = new CircularByteStackBuffer(0xFFFF);
+        decodedBuffer = new CircularByteBuffer(0xFFFF);
         stringBuilder = new StringBuilder();
     }
 
@@ -96,7 +96,7 @@ public class Decoder {
     }
 
     private int getReferencedOffset() {
-        return (peekByte(index, fence) << 8) | ((int) peekByte(index + 1, fence) & 0xFF);
+        return (peekByte(index, fence) << 8 & 0xFFFF) | ((int) peekByte(index + 1, fence) & 0xFF);
     }
 
     private int decodeByteValue(byte[] buffer) {

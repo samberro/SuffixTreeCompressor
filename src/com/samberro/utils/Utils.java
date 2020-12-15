@@ -1,12 +1,14 @@
 package com.samberro.utils;
 
-import com.samberro.Decoder;
 import com.samberro.SuffixTrie;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
 
 import static com.samberro.SuffixTrie.MAX_DISTANCE;
 import static com.samberro.SuffixTrie.MAX_SUFFIX_LENGTH;
@@ -44,7 +46,7 @@ public class Utils {
     }
 
     public static byte[] fromFile(int size) throws IOException {
-        FileInputStream is = new FileInputStream("/Users/i850563/Desktop/sample.jpg");
+        FileInputStream is = new FileInputStream("/Users/i850563/Desktop/sample.txt");
         BufferedInputStream bis = new BufferedInputStream(is);
         byte[] bytes = bis.readNBytes(size);
         bis.close();
@@ -88,4 +90,9 @@ public class Utils {
         }
         return String.format("%.1f %cB", bytes / 1000.0, ci.current());
     }
+
+    private static void log(String format, Object... opts) {
+        System.out.printf(format, opts).println();
+    }
+
 }

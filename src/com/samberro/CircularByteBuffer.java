@@ -1,11 +1,11 @@
 package com.samberro;
 
-public class CircularByteStackBuffer {
+public class CircularByteBuffer {
     private byte[] buffer;
     private int bufferHead;
     private int cap;
 
-    public CircularByteStackBuffer(int capacity) {
+    public CircularByteBuffer(int capacity) {
         cap = capacity;
         buffer = new byte[capacity];
         bufferHead = 0;
