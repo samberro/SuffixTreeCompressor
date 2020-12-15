@@ -15,7 +15,7 @@ import static com.samberro.utils.Utils.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(500_000);
+        byte[] bytes = fromFile(1_000_000);
         long startTime = System.currentTimeMillis();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));

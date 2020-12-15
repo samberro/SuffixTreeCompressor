@@ -79,17 +79,12 @@ public class Node {
         nextInHeap = null;
         bottomHeap = this;
 
-        if (lastSeenIndex - topHeap.lastSeenIndex > (MAX_DISTANCE)) dropTopLoop(lastSeenIndex - MAX_DISTANCE);
+        if (lastSeenIndex - topHeap.lastSeenIndex > (MAX_DISTANCE)) dropStale(lastSeenIndex - MAX_DISTANCE);
     }
 
-    private void dropTopLoop(int dropIndex) {
+    private void dropStale(int dropIndex) {
         assertNotRecycled();
-        int count = 0;
-        while (topHeap.lastSeenIndex < dropIndex) {
-            if (topHeap.parentNode != null) count += topHeap.parentNode.removeNode(topHeap);
-            else throw new RuntimeException("removeFromHeap(topHeap);");
-        }
-//        System.out.println(" >> Dropped Nodes: " + count);
+        while (topHeap.lastSeenIndex < dropIndex) topHeap.parentNode.removeNode(topHeap);
     }
 
     public Node nodeAt(byte b) {
@@ -159,10 +154,6 @@ public class Node {
     private void recycle() {
         POOL.push(this);
         recycled = true;
-    }
-
-    public Node getParentNode() {
-        return parentNode;
     }
 
     private void assertNotRecycled() {
