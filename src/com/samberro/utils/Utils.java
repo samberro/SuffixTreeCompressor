@@ -48,7 +48,9 @@ public class Utils {
     public static byte[] fromFile(int size) throws IOException {
         FileInputStream is = new FileInputStream("/Users/i850563/Desktop/sample.txt");
         BufferedInputStream bis = new BufferedInputStream(is);
-        byte[] bytes = bis.readNBytes(size);
+        byte[] bytes = new byte[size];
+        int read = 0;
+        while (read < size) read += bis.readNBytes(bytes, read, size - read);
         bis.close();
         return bytes;
     }
