@@ -3,6 +3,7 @@ package com.samberro.utils;
 import com.samberro.trie.SuffixTrie;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.CharacterIterator;
@@ -46,12 +47,14 @@ public class Utils {
     }
 
     public static byte[] fromFile(int size) throws IOException {
-        FileInputStream is = new FileInputStream("/Users/i850563/Desktop/sample.txt");
-        BufferedInputStream bis = new BufferedInputStream(is);
+        String file = "/Users/i850563/Desktop/sample.txt";
         byte[] bytes = new byte[size];
         int read = 0;
-        while (read < size) read += bis.readNBytes(bytes, read, size - read);
-        bis.close();
+        while (read < size) {
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+            read += bis.readNBytes(bytes, read, size - read);
+            bis.close();
+        }
         return bytes;
     }
 

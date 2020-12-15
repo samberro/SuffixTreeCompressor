@@ -3,6 +3,8 @@ package com.samberro;
 import com.samberro.codec.Coder;
 import com.samberro.codec.Decoder;
 import com.samberro.matcher.Matcher;
+import com.samberro.matcher.Matcher.MatchListener;
+import com.samberro.matcher.MatcherImp;
 import com.samberro.trie.Node;
 import com.samberro.trie.SuffixTrie;
 
@@ -19,7 +21,7 @@ public class Main {
         long startTime = System.currentTimeMillis();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));
-        Matcher matcher = new Matcher(new Matcher.MatchListener() {
+        Matcher matcher = new MatcherImp(new MatchListener() {
             @Override
             public void onMatchReady(int originIndex, int destIndex, int length) {
                 packer.writeMatchedBytes(originIndex, destIndex, length);
@@ -56,7 +58,6 @@ public class Main {
         String string = new Decoder(compressed, new BufferedOutputStream(os)).withDebug(input).decode().getStringRepresentation();
         os.close();
         byte[] uncompressed = os.toByteArray();
-        System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(input.length));
         String inputStr = toByteString(input);
         System.out.println("INPUT:        " + inputStr.substring(0, Math.min(100, inputStr.length())));
         System.out.println("COMPRESSED  : " + string.substring(0, Math.min(100, string.length())));
