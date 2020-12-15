@@ -1,5 +1,7 @@
 package com.samberro;
 
+import com.samberro.codec.Coder;
+import com.samberro.codec.Decoder;
 import com.samberro.matcher.Matcher;
 
 import java.io.BufferedOutputStream;

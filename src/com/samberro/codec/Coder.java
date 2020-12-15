@@ -1,4 +1,4 @@
-package com.samberro;
+package com.samberro.codec;
 
 import com.samberro.matcher.MatchInfo;
 

@@ -1,16 +1,16 @@
-package com.samberro;
+package com.samberro.codec;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import static com.samberro.NextAction.*;
 import static com.samberro.SuffixTrie.MAX_SUFFIX_LENGTH;
+import static com.samberro.codec.Decoder.Action.*;
 import static com.samberro.matcher.Matcher.MIN_MATCH;
 import static com.samberro.utils.Utils.rightShiftUnsigned;
 
 public class Decoder {
-    private NextAction nextAction;
+    private Action action;
     private int index;
     private int fence;
     private byte[] in;
@@ -24,7 +24,7 @@ public class Decoder {
     public Decoder(byte[] array, BufferedOutputStream outputStream) {
         this.in = array;
         this.outputStream = outputStream;
-        nextAction = READ_ACTION_FLAG;
+        action = READ_ACTION_FLAG;
         index = 0;
         fence = 0;
         buffer = new byte[MAX_SUFFIX_LENGTH];
@@ -33,9 +33,9 @@ public class Decoder {
     }
 
     public Decoder decode() throws IOException {
-        while (nextAction != DONE) {
+        while (action != DONE) {
             int read = 0;
-            switch (nextAction) {
+            switch (action) {
                 case READ_ACTION_FLAG:
                     decodeAction();
                     break;
@@ -70,8 +70,8 @@ public class Decoder {
     }
 
     private void updateString() {
-        if (nextAction == READ_BYTE_VAL) appendRawByteEncoded(peekByte(index, fence));
-        else if (nextAction == READ_COMPRESSED_INFO) appendCompressedInfo(getReferencedOffset(), getReferencedLength());
+        if (action == READ_BYTE_VAL) appendRawByteEncoded(peekByte(index, fence));
+        else if (action == READ_COMPRESSED_INFO) appendCompressedInfo(getReferencedOffset(), getReferencedLength());
     }
 
     private void appendCompressedInfo(int offset, byte length) {
@@ -87,7 +87,7 @@ public class Decoder {
         byte length = getReferencedLength();
         index += 2;
         incrementBoundaryStart(6);
-        nextAction = READ_ACTION_FLAG;
+        action = READ_ACTION_FLAG;
         return decodedBuffer.at(offset, length, buffer);
     }
 
@@ -101,7 +101,7 @@ public class Decoder {
 
     private int decodeByteValue(byte[] buffer) {
         buffer[0] = peekByte(index++, fence);
-        nextAction = READ_ACTION_FLAG;
+        action = READ_ACTION_FLAG;
         return 1;
     }
 
@@ -114,12 +114,12 @@ public class Decoder {
     }
 
     private void decodeAction() {
-        if (index >= in.length - 1) nextAction = DONE;
+        if (index >= in.length - 1) action = DONE;
         else {
             byte b = (byte) (in[index] << fence);
             boolean isCompressed = (b & 0x80) == 0x80;
             incrementBoundaryStart(1);
-            nextAction = isCompressed ? NextAction.READ_COMPRESSED_INFO : NextAction.READ_BYTE_VAL;
+            action = isCompressed ? Action.READ_COMPRESSED_INFO : READ_BYTE_VAL;
         }
     }
 
@@ -137,4 +137,9 @@ public class Decoder {
         this.original = input;
         return this;
     }
+
+    public enum Action {
+        READ_ACTION_FLAG, READ_BYTE_VAL, READ_COMPRESSED_INFO, DONE
+    }
+
 }

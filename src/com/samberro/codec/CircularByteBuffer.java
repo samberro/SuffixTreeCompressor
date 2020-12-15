@@ -1,4 +1,4 @@
-package com.samberro;
+package com.samberro.codec;
 
 public class CircularByteBuffer {
     private byte[] buffer;
