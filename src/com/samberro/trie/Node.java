@@ -6,9 +6,7 @@ import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
 
 public class Node {
     public static int COUNT = 0;
-    private static Stack<Node> POOL = new Stack<>();
-    private static Node topHeap, bottomHeap;
-    private static int POOL_MAX;
+    private static Node topHeap, bottomHeap, recycleTop;
 
     //    private Node[] nodes = new Node[256];
     private HashMap<Byte, Node> nodes = new HashMap<>();
@@ -29,15 +27,14 @@ public class Node {
         this.parentNode = parentNode;
         COUNT++;
         if (COUNT % 1_000_000 == 0)
-            System.out.println("Created Nodes: " + (COUNT / 1_000_000) + "mil, POOL: " + POOL.size());
+            System.out.println("Created Nodes: " + (COUNT / 1_000_000) + "mil");
     }
 
     public static Node obtain(byte val, int depth, Node parentNode) {
-        if (POOL.isEmpty()) return new Node(val, depth, parentNode);
-        if (POOL_MAX < POOL.size()) {
-            POOL_MAX = POOL.size();
-        }
-        Node n = POOL.pop();
+        if (!hasRecycled()) return new Node(val, depth, parentNode);
+
+        Node n = recycleTop;
+        moveRecycledTop();
         n.val = val;
         n.depth = depth;
         n.parentNode = parentNode;
@@ -48,6 +45,14 @@ public class Node {
         n.previousInHeap = null;
         n.nextInHeap = null;
         return n;
+    }
+
+    private static void moveRecycledTop() {
+        recycleTop = recycleTop.nextInHeap == topHeap ? null : recycleTop.nextInHeap;
+    }
+
+    private static boolean hasRecycled() {
+        return recycleTop != null;
     }
 
     public int getLastSeenIndex() {
@@ -74,6 +79,8 @@ public class Node {
         if (previousInHeap != null) previousInHeap.nextInHeap = nextInHeap;
         if (nextInHeap != null) nextInHeap.previousInHeap = previousInHeap;
         if (topHeap == this) topHeap = nextInHeap;
+        if (recycleTop == this) moveRecycledTop();
+
         bottomHeap.nextInHeap = this;
         previousInHeap = bottomHeap;
         nextInHeap = null;
@@ -121,38 +128,33 @@ public class Node {
 //        return Arrays.asList(nodes);
     }
 
-    public int removeNode(Node n) {
-        int removed = 1;
+    public void removeNode(Node n) {
 //        nodes[n.val&0xFF] = null;
         nodes.remove(n.val);
         n.parentNode = null;
 
         removeFromHeap(n);
-        Collection<Node> nodes = new ArrayList<>(n.getNodes());
-        for (Node child : nodes) removed += n.removeNode(child);
         n.nodes.clear();
         n.recycle();
-        return removed;
     }
 
     private static void removeFromHeap(Node n) {
         if (n == topHeap) {
             topHeap = n.nextInHeap;
-            if (topHeap != null) topHeap.previousInHeap = null;
         } else if (n == bottomHeap) {
             bottomHeap = n.previousInHeap;
             if (bottomHeap != null) bottomHeap.nextInHeap = null;
+            throw new RuntimeException("bottom");
         } else {
-            n.previousInHeap.nextInHeap = n.nextInHeap;
-            n.nextInHeap.previousInHeap = n.previousInHeap;
+            throw new RuntimeException("Middle");
+//            n.previousInHeap.nextInHeap = n.nextInHeap;
+//            n.nextInHeap.previousInHeap = n.previousInHeap;
         }
 
-        n.previousInHeap = null;
-        n.nextInHeap = null;
+        if (recycleTop == null) recycleTop = n;
     }
 
     private void recycle() {
-        POOL.push(this);
         recycled = true;
     }
 
