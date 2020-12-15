@@ -108,7 +108,10 @@ public class Decoder {
     private byte peekByte(int index, int boundaryStart) {
         byte val = in[index];
         if (boundaryStart != 0) {
-            val = (byte) ((val << boundaryStart) | (rightShiftUnsigned(in[index + 1], 8 - boundaryStart)));
+            // Address edge case where we are peeking length value (6 bits) and
+            // it was written into the last bit of the stream
+            byte lowerBits = index + 1 < in.length ? rightShiftUnsigned(in[index + 1], 8 - boundaryStart) : 0x00;
+            val = (byte) ((val << boundaryStart) | lowerBits);
         }
         return val;
     }
