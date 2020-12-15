@@ -86,7 +86,7 @@ public class Node {
 
     private void dropStale(int dropIndex) {
         while (heapTop.lastSeenIndex < dropIndex) {
-            heapTop.parentNode.removeNode(heapTop);
+            heapTop.removeNode();
             moveHeapTop();
         }
     }
@@ -110,16 +110,21 @@ public class Node {
 
     public void addNode(byte b, Node node) {
         if (nodeAt(b) != null) throw new RuntimeException("Replacing is not allowed");
-        nodes.put(b, node);
 //        nodes[b&0xFF] = node;
+        nodes.put(b, node);
     }
 
-    public void removeNode(Node n) {
-//        nodes[n.val&0xFF] = null;
-        nodes.remove(n.val);
-        n.parentNode = null;
+    public boolean isRoot() {
+        return depth == 0;
+    }
 
-        n.nodes.clear();
+    public void removeNode() {
+        if (parentNode != null) {
+//        parentNode.nodes[n.val&0xFF] = null;
+            parentNode.nodes.remove(val);
+        }
+        nodes.clear();
+        parentNode = null;
     }
 
     private static void moveHeapTop() {
@@ -135,10 +140,5 @@ public class Node {
                 ", lastSeenIndex=" + lastSeenIndex +
                 ", nextSuffix=" + nextSuffix +
                 '}';
-    }
-
-
-    public boolean isRoot() {
-        return depth == 0;
     }
 }

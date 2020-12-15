@@ -17,8 +17,7 @@ import static com.samberro.utils.Utils.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(5_000_000);
-        long startTime = System.currentTimeMillis();
+        byte[] bytes = fromFile(2_000_000);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));
         Matcher matcher = new MatcherImp(new MatchListener() {
@@ -36,16 +35,16 @@ public class Main {
         });
         SuffixTrie suffixTrie = new SuffixTrie(matcher);
 
+        long startTime = System.currentTimeMillis();
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
             suffixTrie.insertByte(b, i);
         }
         matcher.finish();
         packer.close();
-        byte[] compressed = out.toByteArray();
-
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
         System.out.println("Nodes created: " + Node.COUNT);
+        byte[] compressed = out.toByteArray();
         System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(bytes.length));
 
         decode(bytes, compressed);

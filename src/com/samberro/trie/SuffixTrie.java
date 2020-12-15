@@ -16,7 +16,7 @@ public class SuffixTrie {
 
     public void insertByte(byte val, int streamIndex) {
         current = insertByte(current, val, streamIndex);
-        if (!validateHavePathToRoot(current)) throw new RuntimeException("No path to root at: " + streamIndex);
+//        if (!validateHavePathToRoot(current)) throw new RuntimeException("No path to root at: " + streamIndex);
     }
 
     private boolean validateHavePathToRoot(Node node) {
