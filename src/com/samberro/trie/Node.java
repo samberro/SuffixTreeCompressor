@@ -2,93 +2,29 @@ package com.samberro.trie;
 
 import java.util.*;
 
-import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
-
 public class Node {
-    public static int COUNT = 0;
-    private static Node heapTop, heapBottom, recycleTop;
-
     //    private Node[] nodes = new Node[256];
     private HashMap<Byte, Node> nodes = new HashMap<>();
-    private byte val;
-    private int depth;
-    private int lastSeenIndex = -1;
-    private Node nextSuffix = null;
+    protected byte val;
+    protected int depth;
+    protected int lastIndex = -1;
+    protected Node nextSuffix = null;
 
-    private Node previousInHeap;
-    private Node nextInHeap;
-    private Node parentNode;
+    protected Node parentNode;
 
-    private Node(byte val, int depth, Node parentNode) {
+    Node(byte val, int depth, Node parentNode) {
         this.val = val;
         this.depth = depth;
         this.parentNode = parentNode;
-        COUNT++;
-        if (COUNT % 1_000_000 == 0)
-            System.out.println("Created Nodes: " + (COUNT / 1_000_000) + "mil");
     }
 
-    public static Node obtain(byte val, int depth, Node parentNode) {
-        if (!hasRecycled()) return new Node(val, depth, parentNode);
 
-        Node n = recycleTop;
-        moveRecycledTop();
-        n.val = val;
-        n.depth = depth;
-        n.parentNode = parentNode;
-
-        n.lastSeenIndex = -1;
-        n.nextSuffix = null;
-        n.previousInHeap = null;
-        n.nextInHeap = null;
-        return n;
+    public int getLastIndex() {
+        return lastIndex;
     }
 
-    private static void moveRecycledTop() {
-        recycleTop = recycleTop.nextInHeap == heapTop ? null : recycleTop.nextInHeap;
-    }
-
-    private static boolean hasRecycled() {
-        return recycleTop != null;
-    }
-
-    public int getLastSeenIndex() {
-        return lastSeenIndex;
-    }
-
-    public void setLastSeenIndex(int lastSeenIndex) {
-        this.lastSeenIndex = lastSeenIndex;
-        moveToBottomOfHeap();
-    }
-
-    private void moveToBottomOfHeap() {
-        if (heapBottom == this) return;
-
-        // First node created. Initialize heap
-        if (heapTop == null) {
-            heapTop = this;
-            heapBottom = this;
-            return;
-        }
-        // Connect previous and next
-        if (previousInHeap != null) previousInHeap.nextInHeap = nextInHeap;
-        if (nextInHeap != null) nextInHeap.previousInHeap = previousInHeap;
-        // Move heapTop and recycle pointers if we need to
-        if (heapTop == this) heapTop = nextInHeap;
-
-        previousInHeap = heapBottom;
-        heapBottom.nextInHeap = this;
-        heapBottom = this;
-        nextInHeap = null;
-
-        if (lastSeenIndex - heapTop.lastSeenIndex > (MAX_DISTANCE)) dropStale(lastSeenIndex - MAX_DISTANCE);
-    }
-
-    private void dropStale(int dropIndex) {
-        while (heapTop.lastSeenIndex < dropIndex) {
-            heapTop.removeNode();
-            moveHeapTop();
-        }
+    public void setLastIndex(int lastIndex) {
+        this.lastIndex = lastIndex;
     }
 
     public Node nodeAt(byte b) {
@@ -127,17 +63,12 @@ public class Node {
         parentNode = null;
     }
 
-    private static void moveHeapTop() {
-        if (recycleTop == null) recycleTop = heapTop;
-        heapTop = heapTop.nextInHeap;
-    }
-
     @Override
     public String toString() {
         return depth == 0 ? "root" : "Node{" +
                 "val=" + String.format("%02X", val) +
                 ", depth=" + depth +
-                ", lastSeenIndex=" + lastSeenIndex +
+                ", lastSeenIndex=" + lastIndex +
                 ", nextSuffix=" + nextSuffix +
                 '}';
     }

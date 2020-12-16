@@ -6,12 +6,15 @@ public class SuffixTrie {
     public static final int MAX_SUFFIX_LENGTH = 0b11_1111 + 3;
     public static final int MAX_DISTANCE = 0xFFFF;
 
-    private Node root = Node.obtain((byte) 0, 0, null);
-    private Node current = root;
-    private Matcher matcher;
+    private Node current;
+    private final Node root;
+    private final Matcher matcher;
+    private final NodeFactory nodeFactory;
 
     public SuffixTrie(Matcher matcher) {
         this.matcher = matcher;
+        this.nodeFactory = new NodeRecycler();
+        this.root = this.current = nodeFactory.obtain((byte) 0, 0, null);
     }
 
     public void insertByte(byte val, int streamIndex) {
@@ -32,12 +35,12 @@ public class SuffixTrie {
         matcher.update(node, next, streamIndex);
 
         if (next == null && node.getDepth() < MAX_SUFFIX_LENGTH) {
-            next = Node.obtain(val, node.getDepth() + 1, node);
+            next = nodeFactory.obtain(val, node.getDepth() + 1, node);
             node.addNode(val, next);
         }
 
         if (next != null) {
-            next.setLastSeenIndex(streamIndex);
+            next.setLastIndex(streamIndex);
             next.setNextSuffixLink(insertByte(node.getNextSuffixLink(), val, streamIndex));
         } else {
             // reached the max suffix length, point to next suffix link
@@ -53,7 +56,7 @@ public class SuffixTrie {
     public int find(byte[] arr) {
         int index = 0;
         Node found = find(root, arr, index);
-        return found == null ? -1 : found.getLastSeenIndex() - arr.length + 1;
+        return found == null ? -1 : found.getLastIndex() - arr.length + 1;
     }
 
     private Node find(Node node, byte[] arr, int index) {

@@ -5,7 +5,7 @@ import com.samberro.codec.Decoder;
 import com.samberro.matcher.Matcher;
 import com.samberro.matcher.Matcher.MatchListener;
 import com.samberro.matcher.MatcherImp;
-import com.samberro.trie.Node;
+import com.samberro.trie.NodeRecycler;
 import com.samberro.trie.SuffixTrie;
 
 import java.io.BufferedOutputStream;
@@ -43,7 +43,8 @@ public class Main {
         matcher.finish();
         packer.close();
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
-        System.out.println("Nodes created: " + Node.COUNT);
+        System.out.printf("Nodes created: %.2fmil, Recycled: %.2fmil\n",
+                NodeRecycler.Stats.nodesCreated / 1_000_000f, NodeRecycler.Stats.nodesRecycled / 1_000_000f);
         byte[] compressed = out.toByteArray();
         System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(bytes.length));
 
