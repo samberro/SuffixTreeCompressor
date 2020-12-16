@@ -17,7 +17,7 @@ import static com.samberro.utils.Utils.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(2_000_000);
+        byte[] bytes = fromFile(1_000_000);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));
         Matcher matcher = new MatcherImp(new MatchListener() {

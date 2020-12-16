@@ -19,23 +19,26 @@ public class MatcherImp implements Matcher {
                 startMatching(parent, next, streamIndex);
                 break;
             case MATCHING:
-                continueMatching(parent, next);
+                continueMatching(parent, next, streamIndex);
                 break;
             default:
                 break;
         }
     }
 
-    private void continueMatching(Node parent, Node next) {
+    private void continueMatching(Node parent, Node next, int streamIndex) {
         if (currentMatch.getMatchNode() == parent) {
-            if (next != null && next.getDepth() <= currentMatch.getMaxAllowedLength()) currentMatch.update(next);
+            if (next != null &&
+                    streamIndex - next.getLastIndex() <= 0xFFFF &&
+                    next.getDepth() <= currentMatch.getMaxAllowedLength()) currentMatch.update(next);
             else if (currentMatch.getMatchLength() >= MIN_MATCH) deliverMatchReady();
             else deliverNoMatch();
         }
     }
 
     private void startMatching(Node parent, Node next, int streamIndex) {
-        if (next != null && parent.isRoot()) {
+        if (next != null && parent.isRoot()
+                && streamIndex - next.getLastIndex() <= 0xFFFF) {
             state = State.MATCHING;
             currentMatch.startMatch(streamIndex, next);
         } else if (parent.isRoot()) listener.onMatchFailed(streamIndex, 1);

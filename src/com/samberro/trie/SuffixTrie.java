@@ -13,6 +13,7 @@ public class SuffixTrie {
 
     public SuffixTrie(Matcher matcher) {
         this.matcher = matcher;
+//        this.nodeFactory = Node::new;
         this.nodeFactory = new NodeRecycler();
         this.root = this.current = nodeFactory.obtain((byte) 0, 0, null);
     }
