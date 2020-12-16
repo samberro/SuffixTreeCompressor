@@ -3,7 +3,9 @@ package com.samberro;
 import com.samberro.codec.Coder;
 import com.samberro.codec.Decoder;
 import com.samberro.matcher.Matcher;
-import com.samberro.trie.Node;
+import com.samberro.matcher.Matcher.MatchListener;
+import com.samberro.matcher.MatcherImp;
+import com.samberro.trie.NodeRecycler;
 import com.samberro.trie.SuffixTrie;
 
 import java.io.BufferedOutputStream;
@@ -15,11 +17,10 @@ import static com.samberro.utils.Utils.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(1_000_000);
-        long startTime = System.currentTimeMillis();
+        byte[] bytes = fromFile(2_000_000);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));
-        Matcher matcher = new Matcher(new Matcher.MatchListener() {
+        Matcher matcher = new MatcherImp(new MatchListener() {
             @Override
             public void onMatchReady(int originIndex, int destIndex, int length) {
                 packer.writeMatchedBytes(originIndex, destIndex, length);
@@ -34,16 +35,17 @@ public class Main {
         });
         SuffixTrie suffixTrie = new SuffixTrie(matcher);
 
+        long startTime = System.currentTimeMillis();
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
             suffixTrie.insertByte(b, i);
         }
         matcher.finish();
         packer.close();
-        byte[] compressed = out.toByteArray();
-
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
-        System.out.println("Nodes created: " + Node.COUNT);
+        System.out.printf("Nodes created: %.2fmil, Recycled: %.2fmil\n",
+                NodeRecycler.Stats.nodesCreated / 1_000_000f, NodeRecycler.Stats.nodesRecycled / 1_000_000f);
+        byte[] compressed = out.toByteArray();
         System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(bytes.length));
 
         decode(bytes, compressed);
@@ -56,7 +58,6 @@ public class Main {
         String string = new Decoder(compressed, new BufferedOutputStream(os)).withDebug(input).decode().getStringRepresentation();
         os.close();
         byte[] uncompressed = os.toByteArray();
-        System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(input.length));
         String inputStr = toByteString(input);
         System.out.println("INPUT:        " + inputStr.substring(0, Math.min(100, inputStr.length())));
         System.out.println("COMPRESSED  : " + string.substring(0, Math.min(100, string.length())));

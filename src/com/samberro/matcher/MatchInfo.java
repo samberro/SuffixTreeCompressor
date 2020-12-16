@@ -15,7 +15,7 @@ public class MatchInfo {
 
     public void update(Node node) {
         matchNode = node;
-        originalIndex = node == null ? -1 : (node.getLastSeenIndex() - node.getDepth() + 1);
+        originalIndex = node == null ? -1 : (node.getLastIndex() - node.getDepth() + 1);
     }
 
     public int getOriginalIndex() {
