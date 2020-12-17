@@ -53,6 +53,7 @@ public class Utils {
      * @throws IOException
      */
     public static void decodeAndTest(byte[] original, byte[] compressed) throws IOException {
+        System.out.println("DEBUG: Checking integrity of compressed bytes by trying to uncompress them");
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         String compressedState = new Decoder(new BufferedOutputStream(os))
                 .withDebug(true, original)

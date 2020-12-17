@@ -13,6 +13,7 @@ public class ByteCaptureOutputStream extends ByteArrayOutputStream {
 
     @Override
     public void write(int b) {
+        super.write(b);
         try {
             os.write(b);
         } catch (IOException e) {
@@ -21,9 +22,24 @@ public class ByteCaptureOutputStream extends ByteArrayOutputStream {
     }
 
     @Override
+    public synchronized void write(byte[] b, int off, int len) {
+        super.write(b, off, len);
+        try {
+            os.write(b, off, len);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public void close() throws IOException {
         super.close();
-        os.flush();
         os.close();
+    }
+
+    @Override
+    public void flush() throws IOException {
+        super.flush();
+        os.flush();
     }
 }
