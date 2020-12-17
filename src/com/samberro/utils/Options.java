@@ -78,10 +78,10 @@ public class Options {
 
     private static void printHelp() {
         System.out.println("Usage: java -jar compressor.jar [-u] [-is|-if <byte-string|filename>] " +
-                "[-os|-of <byte-string|filename>] [-d]\n");
-        System.out.println("Ex: java -jar compressor.jar -if ./sample.txt -of ./sample.cmp\n");
-        System.out.println("Ex: java -jar compressor.jar -u -if ./sample.cmp -of ./sample_uncompressed.txt\n");
-        System.out.println("Ex: java -jar compressor.jar -is AABBCCDDAABBCCDD -d\n");
+                "[-os|-of <byte-string|filename>] [-d]");
+        System.out.println("Ex: java -jar compressor.jar -if ./sample.txt -of ./sample.cmp");
+        System.out.println("Ex: java -jar compressor.jar -u -if ./sample.cmp -of ./sample_uncompressed.txt");
+        System.out.println("Ex: java -jar compressor.jar -is AABBCCDDAABBCCDD -d");
         Option.printHelp();
         System.exit(0);
     }
