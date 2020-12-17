@@ -65,7 +65,7 @@ public class CircularByteBuffer {
      */
     private int relativeToAbsoluteIndex(int i) {
         int index = bufferHead - i;
-        if (index < 0) index += cap;
+        while (index < 0) index += cap;
         return index;
     }
 }
