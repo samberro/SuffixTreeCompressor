@@ -3,7 +3,7 @@ package com.samberro.codec;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 
-import static com.samberro.matcher.MatcherImp.MIN_MATCH;
+import static com.samberro.trie.SuffixTrie.MIN_MATCH;
 
 public class Coder {
     private static final int NUM_BITS_UNCOMPRESSED_BYTE = 9;

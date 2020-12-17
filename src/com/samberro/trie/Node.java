@@ -36,7 +36,7 @@ public class Node {
         return depth;
     }
 
-    public Node getNextSuffixLink() {
+    public Node getNextSuffix() {
         return nextSuffix;
     }
 
@@ -45,13 +45,9 @@ public class Node {
     }
 
     public void addNode(byte b, Node node) {
-        if (nodeAt(b) != null) throw new RuntimeException("Replacing is not allowed");
+//        if (nodeAt(b) != null) throw new RuntimeException("Replacing is not allowed");
 //        nodes[b&0xFF] = node;
         nodes.put(b, node);
-    }
-
-    public boolean isRoot() {
-        return depth == 0;
     }
 
     public void removeNode() {

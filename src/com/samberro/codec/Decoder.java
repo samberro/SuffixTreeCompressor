@@ -6,7 +6,7 @@ import java.io.OutputStream;
 
 import static com.samberro.trie.SuffixTrie.MAX_SUFFIX_LENGTH;
 import static com.samberro.codec.Decoder.Action.*;
-import static com.samberro.matcher.MatcherImp.MIN_MATCH;
+import static com.samberro.trie.SuffixTrie.MIN_MATCH;
 import static com.samberro.utils.Utils.rightShiftUnsigned;
 
 public class Decoder {
@@ -65,7 +65,8 @@ public class Decoder {
     private void checkWithOriginal(byte[] buffer, int read) {
         for (int i = 0; i < read; i++) {
             if (buffer[i] != original[originalIndex++])
-                throw new RuntimeException("Mismatch at index " + (originalIndex - 1));
+                throw new RuntimeException("Mismatch at index " + (originalIndex - 1) + ", " +
+                        stringBuilder.substring(stringBuilder.lastIndexOf("(0"), stringBuilder.length()));
         }
     }
 

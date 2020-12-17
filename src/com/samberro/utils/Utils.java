@@ -70,9 +70,9 @@ public class Utils {
             testBytes = Arrays.copyOfRange(inputBytes, start, start + length);
             int foundIndex = suffixTrie.find(testBytes);
             if (foundIndex == -1)
-                throw new RuntimeException("was not found: (" + start + ", " + length + ")");
-            if (!checkMatch(inputString, start, length, foundIndex))
-                throw new RuntimeException("mismatch (" + start + ", " + length + ")");
+                System.err.println("was not found: (" + start + ", " + length + ")");
+            else if (!checkMatch(inputString, start, length, foundIndex))
+                System.err.println("mismatch (" + start + ", " + length + ")");
         }
     }
 

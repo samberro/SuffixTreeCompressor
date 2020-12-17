@@ -2,9 +2,7 @@ package com.samberro;
 
 import com.samberro.codec.Coder;
 import com.samberro.codec.Decoder;
-import com.samberro.matcher.Matcher;
-import com.samberro.matcher.Matcher.MatchListener;
-import com.samberro.matcher.MatcherImp;
+import com.samberro.trie.Node;
 import com.samberro.trie.NodeRecycler;
 import com.samberro.trie.SuffixTrie;
 
@@ -17,30 +15,32 @@ import static com.samberro.utils.Utils.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(1_000_000);
+        byte[] bytes = fromFile(500_000);
+        run(bytes);
+    }
+
+    private static void run(byte[] bytes) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Coder packer = new Coder(new BufferedOutputStream(out));
-        Matcher matcher = new MatcherImp(new MatchListener() {
-            @Override
-            public void onMatchReady(int originIndex, int destIndex, int length) {
-                packer.writeMatchedBytes(originIndex, destIndex, length);
-            }
-
-            @Override
-            public void onMatchFailed(int destIndex, int length) {
-                for (int i = 0; i < length; i++) {
-                    packer.writeUncompressedByte(bytes[destIndex + i]);
-                }
-            }
-        });
-        SuffixTrie suffixTrie = new SuffixTrie(matcher);
-
+        SuffixTrie suffixTrie = new SuffixTrie();
         long startTime = System.currentTimeMillis();
+        int written = -1;
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
+
+            if(written < i) {
+                Node n = suffixTrie.findLongestPrefix(bytes, i);
+                if (n != null && n.getDepth() >= 3) {
+                    packer.writeMatchedBytes(n.getLastIndex() - n.getDepth() + 1, i, n.getDepth());
+                    written += n.getDepth();
+                } else {
+                    packer.writeUncompressedByte(b);
+                    written++;
+                }
+            }
+
             suffixTrie.insertByte(b, i);
         }
-        matcher.finish();
         packer.close();
         System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
         System.out.printf("Nodes created: %.2fmil, Recycled: %.2fmil\n",
@@ -50,7 +50,6 @@ public class Main {
 
         decode(bytes, compressed);
 //        testTrie(bytes, suffixTrie);
-
     }
 
     private static void decode(byte[] input, byte[] compressed) throws IOException {
@@ -63,6 +62,6 @@ public class Main {
         System.out.println("COMPRESSED  : " + string.substring(0, Math.min(100, string.length())));
         String s = toByteString(uncompressed);
         System.out.println("UNCOMPRESSED: " + s.substring(0, Math.min(100, s.length())));
-        if (!s.equals(inputStr)) throw new RuntimeException("Not equal");
+        if (!s.equals(inputStr)) System.err.println("Not equal");
     }
 }
