@@ -5,63 +5,75 @@ import com.samberro.codec.Decoder;
 import com.samberro.trie.Node;
 import com.samberro.trie.NodeRecycler;
 import com.samberro.trie.SuffixTrie;
+import com.samberro.utils.ConsoleByteStringWriter;
+import com.samberro.utils.Options;
+import com.samberro.utils.PostProcessFileWriter;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 
-import static com.samberro.utils.Utils.*;
+import static com.samberro.trie.SuffixTrie.MIN_MATCH;
+import static com.samberro.utils.InputDataGenerator.fromByteString;
+import static com.samberro.utils.Options.parseOptions;
+import static com.samberro.utils.Utils.humanReadableByteCountSI;
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = fromFile(500_000);
-        run(bytes);
+        Options opts = parseOptions(args);
+
+        InputStream is = opts.getInputType() == Options.InputOutputType.ByteString ?
+                new ByteArrayInputStream(fromByteString(opts.getInputByteString())) :
+                new BufferedInputStream(new FileInputStream(opts.getInputFilename()));
+
+        OutputStream os = opts.getOutputType() == Options.InputOutputType.ByteString ?
+                new ConsoleByteStringWriter() :
+                new PostProcessFileWriter(opts.getOutputFilename());
+
+        byte[] input = is.readAllBytes();
+        is.close();
+
+        if(opts.compress()) {
+            compress(input, os, opts.isDebugMode());
+        } else {
+            decompress(input, os, opts.isDebugMode());
+        }
     }
 
-    private static void run(byte[] bytes) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Coder packer = new Coder(new BufferedOutputStream(out));
-        SuffixTrie suffixTrie = new SuffixTrie();
-        long startTime = System.currentTimeMillis();
-        int written = -1;
-        for (int i = 0; i < bytes.length; i++) {
-            byte b = bytes[i];
+    private static void decompress(byte[] input, OutputStream os, boolean debug) throws IOException {
+        Decoder decoder = new Decoder(os)
+                .withDebug(debug, null)
+                .decode(input);
+        os.close();
+        if(debug) System.out.println("Decoded: " + decoder.getStringRepresentation());
+    }
 
-            if(written < i) {
-                Node n = suffixTrie.findLongestPrefix(bytes, i);
-                if (n != null && n.getDepth() >= 3) {
-                    packer.writeMatchedBytes(n.getLastIndex() - n.getDepth() + 1, i, n.getDepth());
-                    written += n.getDepth();
+    private static void compress(byte[] input, OutputStream os, boolean debug) throws IOException {
+        Coder coder = new Coder(os).withDebug(debug);
+        SuffixTrie suffixTrie = new SuffixTrie();
+        int streamIndex = 0;
+        long startTime = System.currentTimeMillis();
+        int bytesProcessed = -1;
+        for (int i = 0; i < input.length; i++) {
+            byte b = input[i];
+
+            if(bytesProcessed < streamIndex + i) {
+                Node n = suffixTrie.findLongestPrefix(input, i);
+                if (n != null && n.getDepth() >= MIN_MATCH) {
+                    coder.writeMatchedBytes(n.getLastIndex() - n.getDepth() + 1, i, n.getDepth());
+                    bytesProcessed += n.getDepth();
                 } else {
-                    packer.writeUncompressedByte(b);
-                    written++;
+                    coder.writeUncompressedByte(b);
+                    bytesProcessed++;
                 }
             }
-
             suffixTrie.insertByte(b, i);
         }
-        packer.close();
-        System.out.printf("Finished building tree in %d ms\n", System.currentTimeMillis() - startTime);
+        coder.close();
+
+        System.out.printf("Finished in %d ms\n", System.currentTimeMillis() - startTime);
         System.out.printf("Nodes created: %.2fmil, Recycled: %.2fmil\n",
                 NodeRecycler.Stats.nodesCreated / 1_000_000f, NodeRecycler.Stats.nodesRecycled / 1_000_000f);
-        byte[] compressed = out.toByteArray();
-        System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(compressed.length), humanReadableByteCountSI(bytes.length));
-
-        decode(bytes, compressed);
-//        testTrie(bytes, suffixTrie);
-    }
-
-    private static void decode(byte[] input, byte[] compressed) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        String string = new Decoder(compressed, new BufferedOutputStream(os)).withDebug(input).decode().getStringRepresentation();
-        os.close();
-        byte[] uncompressed = os.toByteArray();
-        String inputStr = toByteString(input);
-        System.out.println("INPUT:        " + inputStr.substring(0, Math.min(100, inputStr.length())));
-        System.out.println("COMPRESSED  : " + string.substring(0, Math.min(100, string.length())));
-        String s = toByteString(uncompressed);
-        System.out.println("UNCOMPRESSED: " + s.substring(0, Math.min(100, s.length())));
-        if (!s.equals(inputStr)) System.err.println("Not equal");
+        System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(coder.getBytesWritten()),
+                humanReadableByteCountSI(input.length));
     }
 }

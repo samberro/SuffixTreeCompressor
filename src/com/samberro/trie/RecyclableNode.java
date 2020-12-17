@@ -1,9 +1,12 @@
 package com.samberro.trie;
 
+/**
+ * A node that can be tracked and recycled. Tells the {@link StaleTracker} when it is visited
+ */
 public class RecyclableNode extends Node {
 
-    protected RecyclableNode previousInList;
-    protected RecyclableNode nextInList;
+    protected RecyclableNode previousInRecycleList;
+    protected RecyclableNode nextInRecycleList;
 
     private StaleTracker<RecyclableNode> tracker;
 
@@ -19,8 +22,8 @@ public class RecyclableNode extends Node {
         this.parentNode = parentNode;
         this.lastIndex = -1;
         this.nextSuffix = null;
-        this.previousInList = null;
-        this.nextInList = null;
+        this.previousInRecycleList = null;
+        this.nextInRecycleList = null;
     }
 
     @Override

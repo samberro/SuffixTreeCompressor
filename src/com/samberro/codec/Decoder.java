@@ -1,6 +1,5 @@
 package com.samberro.codec;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -9,30 +8,45 @@ import static com.samberro.codec.Decoder.Action.*;
 import static com.samberro.trie.SuffixTrie.MIN_MATCH;
 import static com.samberro.utils.Utils.rightShiftUnsigned;
 
+/**
+ * Unpacks and decodes compressed data and writes to an output stream
+ * Has a debug feature to generate a human readable string of what the
+ * compressed array looks like.
+ * This class maintains 0xFFFF recently decoded bytes (max relative position of bytes to be copied)
+ * into a {@link CircularByteBuffer}.
+ */
 public class Decoder {
     private Action action;
     private int index;
     private int fence;
     private byte[] in;
-    private byte[] buffer;
+    private byte[] tempBuffer;
     private CircularByteBuffer decodedBuffer;
     private OutputStream outputStream;
-    private StringBuilder stringBuilder;
-    private byte[] original;
+
+    // Debug fields below
+    private boolean debug = false;
+    private StringBuilder stringBuilder; //Generate human readable representation
+    private byte[] original; // To compare while we decode. Helpful for testing
     private int originalIndex;
 
-    public Decoder(byte[] array, BufferedOutputStream outputStream) {
-        this.in = array;
+    public Decoder(OutputStream outputStream) {
         this.outputStream = outputStream;
-        action = READ_ACTION_FLAG;
-        index = 0;
-        fence = 0;
-        buffer = new byte[MAX_SUFFIX_LENGTH];
+        tempBuffer = new byte[MAX_SUFFIX_LENGTH];
         decodedBuffer = new CircularByteBuffer(0xFFFF);
-        stringBuilder = new StringBuilder();
     }
 
-    public Decoder decode() throws IOException {
+    private void reset(byte[] input) {
+        if(debug) stringBuilder = new StringBuilder();
+
+        in = input;
+        index = 0;
+        fence = 0;
+        action = READ_ACTION_FLAG;
+    }
+
+    public Decoder decode(byte[] input) throws IOException {
+        reset(input);
         while (action != DONE) {
             int read = 0;
             switch (action) {
@@ -40,13 +54,13 @@ public class Decoder {
                     decodeAction();
                     break;
                 case READ_BYTE_VAL:
-                    read = decodeByteValue(buffer);
+                    read = decodeByteValue(tempBuffer);
                     break;
                 case READ_COMPRESSED_INFO:
-                    read = decodeCompressedBytes(buffer);
+                    read = decodeCompressedBytes(tempBuffer);
                     break;
             }
-            updateString();
+            if(debug) updateHumanReadableString();
             writeBytes(read);
         }
         outputStream.flush();
@@ -56,9 +70,9 @@ public class Decoder {
 
     private void writeBytes(int read) throws IOException {
         if (read != 0) {
-            outputStream.write(buffer, 0, read);
-            decodedBuffer.push(buffer, read);
-//            checkWithOriginal(buffer, read);
+            outputStream.write(tempBuffer, 0, read);
+            decodedBuffer.push(tempBuffer, read);
+            if(debug && original != null) checkWithOriginal(tempBuffer, read);
         }
     }
 
@@ -70,7 +84,7 @@ public class Decoder {
         }
     }
 
-    private void updateString() {
+    private void updateHumanReadableString() {
         if (action == READ_BYTE_VAL) appendRawByteEncoded(peekByte(index, fence));
         else if (action == READ_COMPRESSED_INFO) appendCompressedInfo(getReferencedOffset(), getReferencedLength());
     }
@@ -137,8 +151,9 @@ public class Decoder {
         return stringBuilder.toString();
     }
 
-    public Decoder withDebug(byte[] input) {
-        this.original = input;
+    public Decoder withDebug(boolean debug, byte[] originalUncompressed) {
+        this.debug = debug;
+        this.original = originalUncompressed;
         return this;
     }
 

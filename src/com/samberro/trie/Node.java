@@ -2,14 +2,18 @@ package com.samberro.trie;
 
 import java.util.*;
 
+/**
+ * Represents a node in a {@link SuffixTrie}. Each node in the Trie represents a suffix of the input.
+ * This suffix can be formed by scanning back up to the root node. The suffix node's {@link #depth} represents the
+ * length of the suffix and the {@link #lastIndex} represents the last index of the last character in the suffix.
+ * The index of the first character in the suffix is {@link #lastIndex} - {@link #depth} + 1.
+ */
 public class Node {
-    //    private Node[] nodes = new Node[256];
     private HashMap<Byte, Node> nodes = new HashMap<>();
     protected byte val;
     protected int depth;
     protected int lastIndex = -1;
     protected Node nextSuffix = null;
-
     protected Node parentNode;
 
     Node(byte val, int depth, Node parentNode) {
@@ -18,7 +22,10 @@ public class Node {
         this.parentNode = parentNode;
     }
 
-
+    /**
+     * The last time this
+     * @return
+     */
     public int getLastIndex() {
         return lastIndex;
     }
@@ -28,7 +35,6 @@ public class Node {
     }
 
     public Node nodeAt(byte b) {
-//        return nodes[b&0xFF];
         return nodes.get(b);
     }
 
@@ -46,17 +52,13 @@ public class Node {
 
     public void addNode(byte b, Node node) {
 //        if (nodeAt(b) != null) throw new RuntimeException("Replacing is not allowed");
-//        nodes[b&0xFF] = node;
         nodes.put(b, node);
     }
 
     public void removeNode() {
-        if (parentNode != null) {
-//        parentNode.nodes[n.val&0xFF] = null;
-            parentNode.nodes.remove(val);
-        }
-        nodes.clear();
+        if (parentNode != null) parentNode.nodes.remove(val);
         parentNode = null;
+        nodes.clear();
     }
 
     @Override

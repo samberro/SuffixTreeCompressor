@@ -1,42 +1,53 @@
 package com.samberro.codec;
 
-import java.io.BufferedOutputStream;
+import com.samberro.utils.Utils;
+
 import java.io.IOException;
+import java.io.OutputStream;
 
 import static com.samberro.trie.SuffixTrie.MIN_MATCH;
 
+/**
+ * Packs and writes the compressed data to a stream
+ */
 public class Coder {
     private static final int NUM_BITS_UNCOMPRESSED_BYTE = 9;
     private static final int NUM_BITS_COMPRESSED_STRING = 23;
 
-    private BufferedOutputStream outputStream;
+    private OutputStream outputStream;
     private int fence = 0; //byte fence
-    private int outval = 0;
+    private int outVal = 0;
     byte[] outBytes = new byte[4];
     private int bytesWritten = 0;
+    private boolean debug;
+    private StringBuilder stringBuilder = new StringBuilder();
 
-    public Coder(BufferedOutputStream outputStream) {
+    public Coder(OutputStream outputStream) {
         this.outputStream = outputStream;
     }
 
+    public Coder withDebug(boolean debug) {this.debug = debug; return this;}
+
     public void writeUncompressedByte(byte b) {
         if (fence + NUM_BITS_UNCOMPRESSED_BYTE <= 32) {
-            outval |= (b & 0xFF) << (23 - fence);
+            outVal |= (b & 0xFF) << (23 - fence);
             fence = (fence + NUM_BITS_UNCOMPRESSED_BYTE) % 32;
             if (fence == 0) {
                 write();
-                outval = 0;
+                outVal = 0;
             }
         } else {
             fence = (fence + NUM_BITS_UNCOMPRESSED_BYTE) % 32;
-            outval |= (b & 0xFF) >>> fence;
+            outVal |= (b & 0xFF) >>> fence;
             write();
-            outval = (b & 0xFF) << (32 - fence);
+            outVal = (b & 0xFF) << (32 - fence);
         }
+
+        if(debug) stringBuilder.append("(0,").append(String.format("%02X", b)).append(")");
     }
 
     private void write() {
-        byteSize(outval);
+        byteSize(outVal);
         writeToStream(outBytes, 4);
     }
 
@@ -55,23 +66,26 @@ public class Coder {
         val |= encodedLength & 0x3F;
 
         if (fence + NUM_BITS_COMPRESSED_STRING <= 32) {
-            outval |= val << (9 - fence);
+            outVal |= val << (9 - fence);
             fence = (fence + NUM_BITS_COMPRESSED_STRING) % 32;
             if (fence == 0) {
                 write();
-                outval = 0;
+                outVal = 0;
             }
         } else {
             fence = (fence + NUM_BITS_COMPRESSED_STRING) % 32;
-            outval |= val >>> fence;
+            outVal |= val >>> fence;
             write();
-            outval = val << (32 - fence);
+            outVal = val << (32 - fence);
         }
+
+        if(debug) stringBuilder.append("(1,").append(String.format("-%d", relativePos))
+                .append(",").append(length).append(")");
     }
 
     public void close() throws IOException {
         if (fence != 0) {
-            byteSize(outval);
+            byteSize(outVal);
             int numBytes = fence / 8 + 1;
             writeToStream(outBytes, numBytes);
         }
@@ -79,7 +93,8 @@ public class Coder {
         outputStream.flush();
         outputStream.close();
 
-        System.out.println("Bytes written: " + bytesWritten);
+//        System.out.println("Bytes written: " + bytesWritten);
+        if(debug) System.out.println("COMPRESSED: " + stringBuilder.toString());
     }
 
     private void writeToStream(byte[] byteVals, int numBytes) {
@@ -89,5 +104,11 @@ public class Coder {
             e.printStackTrace();
         }
         bytesWritten += numBytes;
+        if(bytesWritten % 10_000 == 0) System.out.println("Bytes Written: " +
+                Utils.humanReadableByteCountSI(bytesWritten));
+    }
+
+    public int getBytesWritten() {
+        return bytesWritten;
     }
 }

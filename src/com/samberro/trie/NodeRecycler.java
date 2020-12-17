@@ -2,6 +2,13 @@ package com.samberro.trie;
 
 import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
 
+/**
+ * Node factory and recycler class. It keeps track of the all the nodes
+ * in a doubly linked list ordered from least used to most recent.
+ * It also maintains a pointer to the next Node in the that can be recycled via {@link #recycleTop},
+ * the top of the active nodes in the and the bottom of the nodes list. The pointers allows it to perform
+ * update operations in O(1) time complexity
+ */
 public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode> {
     private RecyclableNode activeTop, activeBottom, recycleTop;
 
@@ -25,10 +32,14 @@ public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode> {
     }
 
     private void moveRecycledTop() {
-        recycleTop = recycleTop.nextInList == activeTop ? null : recycleTop.nextInList;
+        recycleTop = recycleTop.nextInRecycleList == activeTop ? null : recycleTop.nextInRecycleList;
     }
 
-    private void moveActiveToBottom(RecyclableNode node) {
+    /**
+     * Move the recently used node to the bottom of the list
+     * @param node
+     */
+    private void moveToBottomOfActiveList(RecyclableNode node) {
         if (activeBottom == node) return;
 
         // First node created. Initialize heap
@@ -38,34 +49,41 @@ public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode> {
             return;
         }
         // Connect previous and next
-        if (node.previousInList != null) node.previousInList.nextInList = node.nextInList;
-        if (node.nextInList != null) node.nextInList.previousInList = node.previousInList;
+        if (node.previousInRecycleList != null) node.previousInRecycleList.nextInRecycleList = node.nextInRecycleList;
+        if (node.nextInRecycleList != null) node.nextInRecycleList.previousInRecycleList = node.previousInRecycleList;
         // Move heapTop and recycle pointers if we need to
-        if (activeTop == node) activeTop = node.nextInList;
+        if (activeTop == node) activeTop = node.nextInRecycleList;
 
-        node.previousInList = activeBottom;
-        activeBottom.nextInList = node;
+        node.previousInRecycleList = activeBottom;
+        activeBottom.nextInRecycleList = node;
         activeBottom = node;
-        node.nextInList = null;
+        node.nextInRecycleList = null;
 
+        // if we exceeded our sliding window of 0xFFFF (MAX_DISTANCE) then add shrink active list
         if (node.lastIndex - activeTop.lastIndex > MAX_DISTANCE) recycleStaleNodes(node.lastIndex - MAX_DISTANCE);
     }
 
+    /**
+     * Moves the active nodes pointer until we are back within the sliding window.
+     * @param minIndex min index to put us in the sliding window
+     */
     private void recycleStaleNodes(int minIndex) {
+        //This loop executes in O(1) time complexity
+        // and worst case is it loops SUFFIX_MAX_LENGTH=66 times
         while (activeTop.lastIndex < minIndex) {
             activeTop.removeNode();
-            moveHeapTop();
+            moveActivePointer();
         }
     }
 
-    private void moveHeapTop() {
+    private void moveActivePointer() {
         if (recycleTop == null) recycleTop = activeTop;
-        activeTop = activeTop.nextInList;
+        activeTop = activeTop.nextInRecycleList;
     }
 
     @Override
     public void touch(RecyclableNode node) {
-        moveActiveToBottom(node);
+        moveToBottomOfActiveList(node);
     }
 
     public static class Stats {
