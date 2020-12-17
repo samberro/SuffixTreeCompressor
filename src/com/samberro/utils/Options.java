@@ -77,7 +77,11 @@ public class Options {
     }
 
     private static void printHelp() {
-        System.out.println("Usage:\n");
+        System.out.println("Usage: java -jar compressor.jar [-u] [-is|-if <byte-string|filename>] " +
+                "[-os|-of <byte-string|filename>] [-d]\n");
+        System.out.println("Ex: java -jar compressor.jar -if ./sample.txt -of ./sample.cmp\n");
+        System.out.println("Ex: java -jar compressor.jar -u -if ./sample.cmp -of ./sample_uncompressed.txt\n");
+        System.out.println("Ex: java -jar compressor.jar -is AABBCCDDAABBCCDD -d\n");
         Option.printHelp();
         System.exit(0);
     }
@@ -91,8 +95,8 @@ public class Options {
         ByteStringInputOption("-is", "--input-string", "Use a byte string as input" +
                 "Ex: \"AABBCC\" for [0xAA, 0xBB, 0xCC]"),
         ByteStringOutputOption("-os", "--output-string", "Output as a byte string to console"),
-        DebugModeOption("-d", "--debug", "print extra info and enable debug mode"),
-        DecompressModeOption("-u", "--decompress", "decompress input");
+        DebugModeOption("-d", "--debug", "print extra info, enable integrity checks and debug mode (slower)"),
+        DecompressModeOption("-u", "--uncompress", "Uncompress input");
 
 
         private String shrt;

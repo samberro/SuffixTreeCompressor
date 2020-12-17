@@ -67,6 +67,7 @@ public class Utils {
         String s = toByteString(uncompressed);
         System.out.println("UNCOMPRESSED: " + s.substring(0, Math.min(100, s.length())));
         if (!s.equals(inputStr)) System.err.println("Not equal");
+        else System.out.println("Success... Byte streams are equal.");
     }
 
     /**

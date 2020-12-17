@@ -1,7 +1,5 @@
 package com.samberro.trie;
 
-import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
-
 /**
  * Node factory and recycler class. It keeps track of the all the nodes
  * in a doubly linked list ordered from least used to most recent.
@@ -9,7 +7,7 @@ import static com.samberro.trie.SuffixTrie.MAX_DISTANCE;
  * the top of the active nodes in the and the bottom of the nodes list. The pointers allows it to perform
  * update operations in O(1) time complexity
  */
-public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode> {
+public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode>, Recycler {
     private RecyclableNode activeTop, activeBottom, recycleTop;
 
     @Override
@@ -58,18 +56,15 @@ public class NodeRecycler implements NodeFactory, StaleTracker<RecyclableNode> {
         activeBottom.nextInRecycleList = node;
         activeBottom = node;
         node.nextInRecycleList = null;
-
-        // if we exceeded our sliding window of 0xFFFF (MAX_DISTANCE) then add shrink active list
-        if (node.lastIndex - activeTop.lastIndex > MAX_DISTANCE) recycleStaleNodes(node.lastIndex - MAX_DISTANCE);
     }
 
     /**
      * Moves the active nodes pointer until we are back within the sliding window.
      * @param minIndex min index to put us in the sliding window
      */
-    private void recycleStaleNodes(int minIndex) {
-        //This loop executes in O(1) time complexity
-        // and worst case is it loops SUFFIX_MAX_LENGTH=66 times
+    @Override
+    public void recycleStaleNodes(int minIndex) {
+        // worst case execution time is SUFFIX_MAX_LENGTH=66 times
         while (activeTop.lastIndex < minIndex) {
             activeTop.removeNode();
             moveActivePointer();

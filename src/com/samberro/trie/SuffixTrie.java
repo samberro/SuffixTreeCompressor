@@ -47,10 +47,12 @@ public class SuffixTrie {
     private Node current;
     private final Node root;
     private final NodeFactory nodeFactory;
+    private final Recycler recycler;
 
     public SuffixTrie() {
 //        this.nodeFactory = Node::new;
         this.nodeFactory = new NodeRecycler();
+        this.recycler = (Recycler) nodeFactory;
         this.root = this.current = nodeFactory.obtain((byte) 0, 0, null);
     }
 
@@ -67,6 +69,8 @@ public class SuffixTrie {
      */
     public void insertByte(byte val, int streamIndex) {
         current = insertByte(current, val, streamIndex);
+        // if we exceeded our sliding window of 0xFFFF (MAX_DISTANCE) then add shrink active list
+        if(streamIndex - MAX_DISTANCE > 0) recycler.recycleStaleNodes(streamIndex - MAX_DISTANCE);
 //        if (!validateHavePathToRoot(current)) throw new RuntimeException("No path to root at: " + streamIndex);
     }
 

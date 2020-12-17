@@ -5,6 +5,7 @@ import com.samberro.codec.Decoder;
 import com.samberro.trie.Node;
 import com.samberro.trie.NodeRecycler;
 import com.samberro.trie.SuffixTrie;
+import com.samberro.utils.ByteCaptureOutputStream;
 import com.samberro.utils.ConsoleByteStringWriter;
 import com.samberro.utils.Options;
 import com.samberro.utils.PostProcessFileWriter;
@@ -14,6 +15,7 @@ import java.io.*;
 import static com.samberro.trie.SuffixTrie.MIN_MATCH;
 import static com.samberro.utils.InputDataGenerator.fromByteString;
 import static com.samberro.utils.Options.parseOptions;
+import static com.samberro.utils.Utils.decodeAndTest;
 import static com.samberro.utils.Utils.humanReadableByteCountSI;
 
 public class Main {
@@ -48,6 +50,7 @@ public class Main {
     }
 
     private static void compress(byte[] input, OutputStream os, boolean debug) throws IOException {
+        if(debug) os = new ByteCaptureOutputStream(os);
         Coder coder = new Coder(os).withDebug(debug);
         SuffixTrie suffixTrie = new SuffixTrie();
         int streamIndex = 0;
@@ -75,5 +78,7 @@ public class Main {
                 NodeRecycler.Stats.nodesCreated / 1_000_000f, NodeRecycler.Stats.nodesRecycled / 1_000_000f);
         System.out.printf("Required %s bytes to compress %s\n", humanReadableByteCountSI(coder.getBytesWritten()),
                 humanReadableByteCountSI(input.length));
+
+        if(debug) decodeAndTest(input, ((ByteArrayOutputStream)os).toByteArray());
     }
 }
